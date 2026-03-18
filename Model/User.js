@@ -15,6 +15,7 @@ const UserSchema = new Schema({
     experience:{type:Number}, // years of experience
     bio:{type:String},
     hourlyRate:{type:Number},
+    profilePicture:{type:String}, // URL or base64 image
 },
 {timestamps:true}
 );

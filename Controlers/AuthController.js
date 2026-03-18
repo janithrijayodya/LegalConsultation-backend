@@ -1,10 +1,11 @@
 import User from "../Model/User.js";
 import LawyerRequest from "../Model/LawyerRequest.js";
+import Availability from "../Model/Availability.js";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 export const userRegister = async(req, res, next) =>{
-    const {name, email, NIC, phoneNumber, gender, password, role, specialization, licenseNumber, experience, bio, hourlyRate} = req.body;
+    const {name, email, NIC, phoneNumber, gender, password, role, specialization, licenseNumber, experience, bio, hourlyRate, lawyerIdImage, availability} = req.body;
 
     // Check required fields
     if(!name || !email || !password || !NIC || !phoneNumber || !gender){
@@ -15,6 +16,13 @@ export const userRegister = async(req, res, next) =>{
     if(role === "lawyer"){
         if(!specialization || !licenseNumber || experience === undefined){
             return res.status(400).json({message:"Specialization, license number, and experience are required for lawyers"});
+        }
+        if(!lawyerIdImage){
+            return res.status(400).json({message:"Lawyer ID image is required for lawyer registration"});
+        }
+        // Check if at least one availability slot is set
+        if(!availability || !Object.values(availability).some(day => day.isAvailable)){
+            return res.status(400).json({message:"Please set at least one availability slot"});
         }
     }
 
@@ -48,9 +56,29 @@ export const userRegister = async(req, res, next) =>{
                 experience,
                 bio: bio || "",
                 hourlyRate: hourlyRate || 0,
+                lawyerIdImage,
                 status: "pending"
             });
-            await lawyerRequest.save();
+            const savedRequest = await lawyerRequest.save();
+            
+            // Create availability slots for the lawyer request
+            const availabilitySlots = [];
+            for (const day in availability) {
+                if (availability[day].isAvailable) {
+                    availabilitySlots.push({
+                        lawyerId: savedRequest._id, // Use pending request ID
+                        dayOfWeek: day,
+                        startTime: availability[day].startTime,
+                        endTime: availability[day].endTime,
+                        isAvailable: true,
+                    });
+                }
+            }
+            
+            if (availabilitySlots.length > 0) {
+                await Availability.insertMany(availabilitySlots);
+            }
+            
             return res.status(201).json({
                 message: "Lawyer registration request submitted successfully. Please wait for admin approval."
             });
@@ -72,7 +100,8 @@ export const userRegister = async(req, res, next) =>{
         return res.status(201).json({message:"User created successfully"});
 
     } catch (error) {
-        return res.status(500).json({message:"Internal server error"});
+        console.error(error);
+        return res.status(500).json({message:"Internal server error", error: error.message});
     }
 };
 

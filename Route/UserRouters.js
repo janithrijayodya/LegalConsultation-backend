@@ -10,6 +10,7 @@ router.post("/add", UserController.addUser);
 router.get("/me", verifyToken, UserController.getCurrentUser);
 router.get("/:id", UserController.findUserById);
 router.put("/update/:id", UserController.updateUser);
+router.post("/upload-picture", verifyToken, UserController.uploadProfilePicture);
 router.delete("/delete/:id", verifyToken, UserController.deleteUser);
 
 export default router;

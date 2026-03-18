@@ -1,5 +1,6 @@
 import LawyerRequest from '../Model/LawyerRequest.js';
 import User from '../Model/User.js';
+import Availability from '../Model/Availability.js';
 
 // Get all pending lawyer requests
 export const getPendingLawyerRequests = async (req, res) => {
@@ -75,6 +76,12 @@ export const approveLawyerRequest = async (req, res) => {
 
         await newUser.save();
 
+        // Migrate availability records from LawyerRequest ID to User ID
+        await Availability.updateMany(
+            { lawyerId: lawyerRequest._id },
+            { lawyerId: newUser._id }
+        );
+
         // Delete the lawyer request from LawyerRequest table after successful approval
         await LawyerRequest.findByIdAndDelete(req.params.id);
 
@@ -89,7 +96,8 @@ export const approveLawyerRequest = async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
+        console.error(error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
 
@@ -113,6 +121,9 @@ export const rejectLawyerRequest = async (req, res) => {
         lawyerRequest.reviewedBy = req.user.userId;
         lawyerRequest.reviewedAt = new Date();
         await lawyerRequest.save();
+
+        // Delete availability records for this rejected lawyer request
+        await Availability.deleteMany({ lawyerId: lawyerRequest._id });
 
         res.status(200).json({
             message: "Lawyer request rejected successfully"

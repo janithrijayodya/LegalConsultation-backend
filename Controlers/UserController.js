@@ -127,6 +127,31 @@ const addUser = async(req, res, next) =>{
     }
 }
 
+const uploadProfilePicture = async(req, res, next) =>{
+    const userId = req.user?.userId;
+    const {profilePicture} = req.body;
+
+    try{
+        if(!profilePicture){
+            return res.status(400).json({message:"No image provided"});
+        }
+
+        const user = await User.findByIdAndUpdate(
+            userId, 
+            {profilePicture}, 
+            {new: true}
+        ).select('-password');
+
+        if(!user){
+            return res.status(404).json({message:"User not found"});
+        }
+
+        res.status(200).json({message:"Profile picture updated successfully", user});
+    }catch(err){
+        res.status(500).json({message:err.message});
+    }
+}
+
 
 export default {
     getAllUsers,
@@ -135,5 +160,6 @@ export default {
     deleteUser,
     getCurrentUser,
     addUser,
+    uploadProfilePicture,
     
 };

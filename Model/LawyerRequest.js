@@ -13,6 +13,7 @@ const LawyerRequestSchema = new Schema({
     experience: { type: Number, required: true },
     bio: { type: String, default: "" },
     hourlyRate: { type: Number, default: 0 },
+    lawyerIdImage: { type: String }, // Lawyer ID/Certificate image as base64
     status: { 
         type: String, 
         enum: ["pending", "approved", "rejected"], 
