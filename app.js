@@ -24,7 +24,8 @@ const io = new Server(server, {
   }
 });
 
-let onlineUsers = {};
+let onlineUsers = {}; // Maps userId -> socketId
+let socketToUserId = {}; // Maps socketId -> userId (for reverse lookup)
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -32,8 +33,9 @@ io.on("connection", (socket) => {
   // ✅ Register user (VERY IMPORTANT)
   socket.on("register", (userId) => {
     onlineUsers[userId] = socket.id;
-    console.log("Registered:", userId);
-    console.log("onlineUsers map after register:", onlineUsers);
+    socketToUserId[socket.id] = userId; // Map socket to user for reverse lookup
+    console.log("✅ Registered:", userId, "with socket:", socket.id);
+    console.log("onlineUsers map:", Object.keys(onlineUsers));
   });
 
   //  CALL USER
@@ -74,16 +76,82 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ✅ ANSWER CALL  
+  socket.on("answer-call", ({ to, from }) => {
+    console.log("📞 answer-call received - to:", to, "from:", from, "socket.id:", socket.id);
+    
+    const targetSocket = onlineUsers[to];
+    const lawyerId = socketToUserId[socket.id]; // Get the actual lawyer's ID from socket mapping
+    
+    console.log("📍 Sent by lawyer (socketId):", socket.id, "which maps to userId:", lawyerId);
+
+    if (targetSocket) {
+      io.to(targetSocket).emit("call-accepted", {
+        from: lawyerId  // Send the lawyer's ID (not the value sent by client)
+      });
+      console.log("✅ call-accepted emitted to client with lawyer ID:", lawyerId);
+    } else {
+      console.log("❌ Target client not found:", to);
+    }
+  });
+
+  // ❌ REJECT CALL
+  socket.on("reject-call", ({ to, from }) => {
+    console.log("❌ reject-call received - to:", to);
+    const targetSocket = onlineUsers[to];
+    const lawyerId = socketToUserId[socket.id]; // Get lawyer's actual ID
+
+    if (targetSocket) {
+      io.to(targetSocket).emit("call-rejected", {
+        from: lawyerId
+      });
+      console.log("✅ call-rejected emitted to client with lawyer ID:", lawyerId);
+    } else {
+      console.log("❌ Target client not found:", to);
+    }
+  });
+
+  // ⏹️ END CALL
+  socket.on("end-call", ({ to, from }) => {
+    console.log("⏹️ END-CALL received from:", from, "to:", to);
+    const targetSocket = onlineUsers[to];
+    console.log("📍 Looking for user:", to, "in onlineUsers:", onlineUsers);
+
+    if (targetSocket) {
+      io.to(targetSocket).emit("call-ended", {
+        from
+      });
+      console.log("✅ call-ended emitted to socketId:", targetSocket);
+    } else {
+      console.log("❌ Target user not found. onlineUsers:", Object.keys(onlineUsers));
+    }
+  });
+
+  // 📞 CANCEL CALL (before lawyer answers)
+  socket.on("cancel-call", ({ to, from }) => {
+    const targetSocket = onlineUsers[to];
+
+    if (targetSocket) {
+      io.to(targetSocket).emit("call-cancelled", {
+        from
+      });
+      console.log("📞 Call cancelled by client - notifying lawyer");
+    }
+  });
+
   // ❌ DISCONNECT
   socket.on("disconnect", () => {
-    console.log("Disconnected:", socket.id);
+    console.log("❌ Disconnected:", socket.id);
 
-    // remove user
+    // Remove user from both maps
     for (let userId in onlineUsers) {
       if (onlineUsers[userId] === socket.id) {
         delete onlineUsers[userId];
+        console.log("Removed userId:", userId);
       }
     }
+    delete socketToUserId[socket.id];
+    console.log("Cleaned up socket mapping for:", socket.id);
   });
 });
 
