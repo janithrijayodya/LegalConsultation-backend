@@ -8,6 +8,7 @@ import userRouter from './Route/UserRouters.js';
 import adminRouter from './Route/admin.js';
 import lawyerRouter from './Route/lawyer.js';
 import availabilityRouter from './Route/availability.js';
+import consultationRouter from './Route/consultation.js';
 import { Server } from 'socket.io';
 import http from 'http';
 import cors from 'cors';
@@ -173,6 +174,7 @@ app.use('/api/users', userRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/lawyers', lawyerRouter);
 app.use('/api/availability', availabilityRouter);
+app.use('/api/consultation', consultationRouter);
 //get the data from the request body
 // app.use("/users", router);
 
