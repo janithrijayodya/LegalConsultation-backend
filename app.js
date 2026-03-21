@@ -12,6 +12,7 @@ import consultationRouter from './Route/consultation.js';
 import { Server } from 'socket.io';
 import http from 'http';
 import cors from 'cors';
+import callPackageRouter from './Route/callpackage.js';
 
 dotenv.config();
 const PORT = process.env.PORT || 3001;
@@ -40,42 +41,34 @@ io.on("connection", (socket) => {
   });
 
   //  CALL USER
-  socket.on("callUser", ({ to, from, offer }) => {
-   console.log("Calling:", to);
-  console.log("Online users:", onlineUsers);
-
-  const targetSocket = onlineUsers[to];
-
-  if (targetSocket) {
-    io.to(targetSocket).emit("incoming-call", { from, offer });
-      console.log("Emitted incomingCall to", to);
-  } else {
-      console.log("No targetSocket found for userId:", to);
-    console.log(" User not found or not online");
-  }
+  socket.on("call-user", ({ to, from }) => {
+    console.log("📞 call-user received:");
+    console.log("To:", to);
+    console.log("From:", from);
+    const targetSocket = onlineUsers[to];
+    if (targetSocket) {
+      io.to(targetSocket).emit("incoming-call", { from });
+      console.log("✅ incoming-call emitted");
+    } else {
+      console.log("❌ User not found or not online");
+    }
   });
 
   // ✅ ANSWER CALL
-  socket.on("answerCall", ({ to, answer }) => {
+  socket.on("answer-call", ({ to, from }) => {
+    console.log("✅ answer-call received - to:", to, "from:", from, "socket.id:", socket.id);
     const targetSocket = onlineUsers[to];
-
+    const lawyerId = socketToUserId[socket.id];
     if (targetSocket) {
-      io.to(targetSocket).emit("callAccepted", {
-        answer
-      });
+      io.to(targetSocket).emit("call-accepted", { from: lawyerId });
+      console.log("✅ call-accepted emitted to client with lawyer ID:", lawyerId);
+    } else {
+      console.log("❌ Target client not found:", to);
     }
   });
 
   // 🌐 ICE CANDIDATES
-  socket.on("iceCandidate", ({ to, candidate }) => {
-    const targetSocket = onlineUsers[to];
-
-    if (targetSocket) {
-      io.to(targetSocket).emit("iceCandidate", {
-        candidate
-      });
-    }
-  });
+  // ICE signaling is handled by webrtc-ice-candidate events elsewhere
 
   // ✅ ANSWER CALL  
   socket.on("answer-call", ({ to, from }) => {
@@ -100,12 +93,9 @@ io.on("connection", (socket) => {
   socket.on("reject-call", ({ to, from }) => {
     console.log("❌ reject-call received - to:", to);
     const targetSocket = onlineUsers[to];
-    const lawyerId = socketToUserId[socket.id]; // Get lawyer's actual ID
-
+    const lawyerId = socketToUserId[socket.id];
     if (targetSocket) {
-      io.to(targetSocket).emit("call-rejected", {
-        from: lawyerId
-      });
+      io.to(targetSocket).emit("call-rejected", { from: lawyerId });
       console.log("✅ call-rejected emitted to client with lawyer ID:", lawyerId);
     } else {
       console.log("❌ Target client not found:", to);
@@ -116,12 +106,8 @@ io.on("connection", (socket) => {
   socket.on("end-call", ({ to, from }) => {
     console.log("⏹️ END-CALL received from:", from, "to:", to);
     const targetSocket = onlineUsers[to];
-    console.log("📍 Looking for user:", to, "in onlineUsers:", onlineUsers);
-
     if (targetSocket) {
-      io.to(targetSocket).emit("call-ended", {
-        from
-      });
+      io.to(targetSocket).emit("call-ended", { from });
       console.log("✅ call-ended emitted to socketId:", targetSocket);
     } else {
       console.log("❌ Target user not found. onlineUsers:", Object.keys(onlineUsers));
@@ -131,11 +117,8 @@ io.on("connection", (socket) => {
   // 📞 CANCEL CALL (before lawyer answers)
   socket.on("cancel-call", ({ to, from }) => {
     const targetSocket = onlineUsers[to];
-
     if (targetSocket) {
-      io.to(targetSocket).emit("call-cancelled", {
-        from
-      });
+      io.to(targetSocket).emit("call-cancelled", { from });
       console.log("📞 Call cancelled by client - notifying lawyer");
     }
   });
@@ -175,6 +158,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/lawyers', lawyerRouter);
 app.use('/api/availability', availabilityRouter);
 app.use('/api/consultation', consultationRouter);
+app.use('/api/callpackages', callPackageRouter);
 //get the data from the request body
 // app.use("/users", router);
 
