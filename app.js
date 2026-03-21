@@ -41,13 +41,17 @@ io.on("connection", (socket) => {
   });
 
   //  CALL USER
-  socket.on("call-user", ({ to, from, callPackage }) => {
+  socket.on("call-user", ({ to, from, callPackage, callPackageDurationSeconds }) => {
     console.log("📞 call-user received:");
     console.log("To:", to);
     console.log("From:", from);
     const targetSocket = onlineUsers[to];
     if (targetSocket) {
-      io.to(targetSocket).emit("incoming-call", { from, callPackage: callPackage || null });
+      io.to(targetSocket).emit("incoming-call", {
+        from,
+        callPackage: callPackage || null,
+        callPackageDurationSeconds: callPackageDurationSeconds || null,
+      });
       console.log("✅ incoming-call emitted");
     } else {
       console.log("❌ User not found or not online");
@@ -159,8 +163,7 @@ app.use('/api/lawyers', lawyerRouter);
 app.use('/api/availability', availabilityRouter);
 app.use('/api/consultation', consultationRouter);
 app.use('/api/callpackages', callPackageRouter);
-//get the data from the request body
-// app.use("/users", router);
+
 
 server.listen(3001 , () => {
   console.log(`Server is running on port ${PORT}`);
