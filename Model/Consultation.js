@@ -17,6 +17,11 @@ const ConsultationSchema = new Schema({
     enum: ['call', 'chat'],
     default: 'call'
   },
+  callPackage: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CallPackage',
+    required: false
+  },
   startTime: {
     type: Date,
     required: true

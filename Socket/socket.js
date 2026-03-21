@@ -21,10 +21,11 @@ const initSocket = (server) => {
     });
 
     // Initiate call
-    socket.on("call-user", ({ to, from }) => {
+    socket.on("call-user", ({ to, from, callPackage }) => {
       console.log("📞 call-user received:");
       console.log("To:", to);
       console.log("From:", from);
+      console.log("CallPackage:", callPackage);
 
       const targetSocketId = onlineUsers[to];
       console.log("Target socket:", targetSocketId);
@@ -32,6 +33,7 @@ const initSocket = (server) => {
       if (targetSocketId) {
         io.to(targetSocketId).emit("incoming-call", {
           from,
+          callPackage: callPackage || null,
         });
         console.log("✅ incoming-call emitted");
       } else {

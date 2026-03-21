@@ -6,7 +6,7 @@ export const saveConsultation = async (req, res) => {
     console.log("📩 saveConsultation called");
     console.log("Request body:", req.body);
 
-    const { clientId, lawyerId, type, startTime, endTime, duration } = req.body;
+    const { clientId, lawyerId, type, startTime, endTime, duration, callPackage, status } = req.body;
 
     console.log("📝 Extracted fields:");
     console.log("  clientId:", clientId, "type:", typeof clientId);
@@ -15,6 +15,7 @@ export const saveConsultation = async (req, res) => {
     console.log("  startTime:", startTime);
     console.log("  endTime:", endTime);
     console.log("  duration:", duration);
+    console.log("  callPackage:", callPackage, "type:", typeof callPackage);
 
     if (!clientId || !lawyerId || !startTime) {
       console.log("❌ Validation failed!");
@@ -31,10 +32,11 @@ export const saveConsultation = async (req, res) => {
       clientId,
       lawyerId,
       type: type || 'call',
+      callPackage: callPackage || null,
       startTime: new Date(startTime),
       endTime: endTime ? new Date(endTime) : null,
       duration: duration || 0,
-      status: 'completed'
+      status: status || 'completed'
     });
 
     await consultation.save();

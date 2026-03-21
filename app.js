@@ -41,13 +41,13 @@ io.on("connection", (socket) => {
   });
 
   //  CALL USER
-  socket.on("call-user", ({ to, from }) => {
+  socket.on("call-user", ({ to, from, callPackage }) => {
     console.log("📞 call-user received:");
     console.log("To:", to);
     console.log("From:", from);
     const targetSocket = onlineUsers[to];
     if (targetSocket) {
-      io.to(targetSocket).emit("incoming-call", { from });
+      io.to(targetSocket).emit("incoming-call", { from, callPackage: callPackage || null });
       console.log("✅ incoming-call emitted");
     } else {
       console.log("❌ User not found or not online");
@@ -90,12 +90,12 @@ io.on("connection", (socket) => {
   });
 
   // ❌ REJECT CALL
-  socket.on("reject-call", ({ to, from }) => {
+  socket.on("reject-call", ({ to, from, callPackage }) => {
     console.log("❌ reject-call received - to:", to);
     const targetSocket = onlineUsers[to];
     const lawyerId = socketToUserId[socket.id];
     if (targetSocket) {
-      io.to(targetSocket).emit("call-rejected", { from: lawyerId });
+      io.to(targetSocket).emit("call-rejected", { from: lawyerId, callPackage: callPackage || null });
       console.log("✅ call-rejected emitted to client with lawyer ID:", lawyerId);
     } else {
       console.log("❌ Target client not found:", to);
